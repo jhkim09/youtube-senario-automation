@@ -71,8 +71,8 @@ ${scenario.tags ? scenario.tags.join(', ') : ''}
         'Main Content': scenario.mainContent || '',
         'Conclusion': scenario.conclusion || '',
         'Description': scenario.description || '',
-        'Tags': scenario.tags ? scenario.tags.join(', ') : '',
-        'Generated At': scenario.generatedAt || new Date().toISOString()
+        'Tags': scenario.tags ? scenario.tags.join(', ') : ''
+        // 'Generated At' 필드는 날짜 형식 문제로 제외
       }
     })
   });
@@ -422,8 +422,8 @@ ${scenario.tags ? scenario.tags.join(', ') : ''}
                   'Main Content': scenario.mainContent || '',
                   'Conclusion': scenario.conclusion || '',
                   'Description': scenario.description || '',
-                  'Tags': scenario.tags ? scenario.tags.join(', ') : '',
-                  'Generated At': scenario.generatedAt
+                  'Tags': scenario.tags ? scenario.tags.join(', ') : ''
+                  // 'Generated At' 필드는 날짜 형식 문제로 제외
                 }
               })
             });
