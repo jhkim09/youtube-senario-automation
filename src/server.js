@@ -65,7 +65,14 @@ ${scenario.tags ? scenario.tags.join(', ') : ''}
     },
     body: JSON.stringify({
       fields: {
-        'Attachment Summary': fullContent
+        'Topic': scenario.topic,
+        'Title': scenario.title || '',
+        'Intro': scenario.intro || '',
+        'Main Content': scenario.mainContent || '',
+        'Conclusion': scenario.conclusion || '',
+        'Description': scenario.description || '',
+        'Tags': scenario.tags ? scenario.tags.join(', ') : '',
+        'Generated At': scenario.generatedAt || new Date().toISOString()
       }
     })
   });
@@ -155,7 +162,9 @@ app.post('/api/debug/airtable-minimal-test', async (req, res) => {
 
     const testData = {
       fields: {
-        'Attachment Summary': `Test at ${new Date().toISOString()}`
+        'Topic': `Test Topic ${new Date().toISOString()}`,
+        'Title': 'Test Title',
+        'Main Content': 'Test content'
       }
     };
 

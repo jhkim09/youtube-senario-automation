@@ -1,139 +1,157 @@
-import Airtable from 'airtable';
+import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-console.log('=== Airtable Debug Test ===\n');
+// 환경 변수에서 가져오기 (또는 프롬프트로 입력받기)
+const API_KEY = process.env.AIRTABLE_API_KEY || process.argv[2];
+const BASE_ID = 'app0nk3oQJxZCqmDn';  // 성공한 Base ID
 
-// 환경 변수 확인
-console.log('1. Environment Variables:');
-console.log('   API Key exists:', !!process.env.AIRTABLE_API_KEY);
-console.log('   API Key prefix:', process.env.AIRTABLE_API_KEY ? process.env.AIRTABLE_API_KEY.substring(0, 3) : 'N/A');
-console.log('   Base ID:', process.env.AIRTABLE_BASE_ID);
-console.log('   Table Name:', process.env.AIRTABLE_TABLE_NAME || 'table1');
-
-if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
-  console.error('\n❌ Missing credentials. Please set:');
-  console.log('   AIRTABLE_API_KEY=pat...');
-  console.log('   AIRTABLE_BASE_ID=app0nkN1bVRxJxxvO');
+if (!API_KEY) {
+  console.error('Usage: node test-airtable-debug.js <API_KEY>');
+  console.error('Or set AIRTABLE_API_KEY in .env file');
   process.exit(1);
 }
 
-console.log('\n2. Testing Base Access:');
+console.log('=== Airtable Direct API Debug Test ===\n');
 
-const base = new Airtable({
-  apiKey: process.env.AIRTABLE_API_KEY,
-  endpointUrl: 'https://api.airtable.com'
-}).base(process.env.AIRTABLE_BASE_ID);
+// 환경 변수 확인
+console.log('1. Configuration:');
+console.log('   Base ID:', BASE_ID);
+console.log('   Table Name: Table 1');
 
-// 테이블 이름 테스트
-const tableNames = ['table1', 'youtube', 'Table1', 'Youtube', 'Table 1'];
-let workingTable = null;
+console.log('\n2. Testing Table Access with Direct API:');
 
-console.log('\n3. Testing different table names:');
+const tableName = encodeURIComponent('Table 1');
+const url = `https://api.airtable.com/v0/${BASE_ID}/${tableName}`;
 
-for (const tableName of tableNames) {
-  try {
-    console.log(`   Testing "${tableName}"...`);
-
-    await new Promise((resolve, reject) => {
-      base(tableName).select({
-        maxRecords: 1,
-        view: "Grid view"
-      }).firstPage((err, records) => {
-        if (err) {
-          console.log(`      ❌ Failed: ${err.message}`);
-          if (err.statusCode === 404) {
-            console.log(`         → Table "${tableName}" not found`);
-          } else if (err.statusCode === 403) {
-            console.log(`         → Permission denied for table "${tableName}"`);
-          }
-          reject(err);
-        } else {
-          console.log(`      ✅ Success! Found ${records.length} records`);
-          workingTable = tableName;
-          resolve(records);
-        }
-      });
-    }).catch(() => {}); // Catch to continue loop
-
-    if (workingTable) break;
-  } catch (error) {
-    // Continue to next table name
-  }
-}
-
-if (!workingTable) {
-  console.log('\n❌ No working table found. Possible issues:');
-  console.log('   1. API token doesn\'t have correct permissions');
-  console.log('   2. Base ID is incorrect');
-  console.log('   3. Table name is different from tested names');
-
-  console.log('\n4. Testing base metadata access:');
-
-  // Try to get base schema (requires different permissions)
-  try {
-    const response = await fetch(`https://api.airtable.com/v0/meta/bases/${process.env.AIRTABLE_BASE_ID}/tables`, {
-      headers: {
-        'Authorization': `Bearer ${process.env.AIRTABLE_API_KEY}`
-      }
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log('   ✅ Can access base metadata');
-      console.log('   Available tables:');
-      data.tables.forEach(table => {
-        console.log(`      - ${table.name} (${table.id})`);
-      });
-    } else {
-      console.log('   ❌ Cannot access base metadata');
-      console.log('      Status:', response.status);
-      const errorText = await response.text();
-      console.log('      Error:', errorText);
-    }
-  } catch (error) {
-    console.log('   ❌ Error accessing metadata:', error.message);
-  }
-} else {
-  console.log(`\n✅ Working table found: "${workingTable}"`);
-
-  console.log('\n5. Testing record creation:');
-
-  const testRecord = {
-    'Topic': 'API 권한 테스트',
-    'Title': '테스트 제목',
-    'Generated At': new Date().toISOString()
-  };
-
-  console.log('   Creating test record...');
-  console.log('   Fields:', JSON.stringify(testRecord, null, 2));
-
-  base(workingTable).create(testRecord, (err, record) => {
-    if (err) {
-      console.log(`   ❌ Failed to create record: ${err.message}`);
-
-      if (err.message.includes('UNKNOWN_FIELD_NAME')) {
-        console.log('\n   Field name issue detected. Trying to get table schema...');
-
-        // List first record to see field structure
-        base(workingTable).select({
-          maxRecords: 1
-        }).firstPage((err, records) => {
-          if (!err && records.length > 0) {
-            console.log('\n   Existing record fields:');
-            Object.keys(records[0].fields).forEach(field => {
-              console.log(`      - ${field}: ${typeof records[0].fields[field]}`);
-            });
-          }
-        });
-      }
-    } else {
-      console.log(`   ✅ Record created successfully!`);
-      console.log(`      Record ID: ${record.id}`);
-      console.log(`      Fields:`, record.fields);
+// 먼저 테이블 읽기 테스트
+console.log('   Reading table to check fields...');
+try {
+  const response = await fetch(url + '?maxRecords=1', {
+    headers: {
+      'Authorization': `Bearer ${API_KEY}`,
+      'Content-Type': 'application/json'
     }
   });
+
+  console.log('   Read Response Status:', response.status, response.statusText);
+  const data = await response.json();
+
+  if (response.ok) {
+    console.log('   ✅ Successfully accessed table!');
+    if (data.records && data.records.length > 0) {
+      console.log('\n   Existing fields in table:');
+      const fields = Object.keys(data.records[0].fields || {});
+      fields.forEach(field => {
+        const value = data.records[0].fields[field];
+        console.log(`      - "${field}": ${typeof value} = ${JSON.stringify(value).substring(0, 50)}...`);
+      });
+    } else {
+      console.log('   Table is empty');
+    }
+  } else {
+    console.log('   ❌ Error reading table:', JSON.stringify(data, null, 2));
+  }
+} catch (error) {
+  console.error('   Error:', error.message);
+}
+
+console.log('\n3. Testing Record Creation with Direct API:');
+
+// 서버에서 사용하는 것과 동일한 형식
+const fullContent = `
+주제: 테스트 주제
+제목: 테스트 제목
+
+=== 썸네일 아이디어 ===
+테스트 썸네일
+
+=== 인트로 ===
+테스트 인트로
+
+=== 본문 ===
+테스트 본문 내용
+
+=== 결론 ===
+테스트 결론
+
+=== 영상 설명 ===
+테스트 설명
+
+=== 태그 ===
+테스트, 태그
+
+생성 시간: ${new Date().toISOString()}
+`.trim();
+
+console.log('   Creating record with Attachment Summary field...');
+try {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      fields: {
+        'Attachment Summary': fullContent
+      }
+    })
+  });
+
+  console.log('   Create Response Status:', response.status, response.statusText);
+  const result = await response.json();
+
+  if (response.ok) {
+    console.log('   ✅ Record created successfully!');
+    console.log('   Record ID:', result.id);
+    console.log('   Created fields:', Object.keys(result.fields));
+  } else {
+    console.log('   ❌ Failed to create record:');
+    console.log('   Error:', JSON.stringify(result, null, 2));
+
+    if (result.error?.type === 'UNKNOWN_FIELD_NAME') {
+      console.log('\n   "Attachment Summary" field not found. Trying other field names...');
+
+      // 다른 필드 이름들 시도
+      const fieldAttempts = [
+        { 'Name': '테스트 이름' },
+        { 'Title': '테스트 제목' },
+        { 'Content': fullContent },
+        { 'Notes': fullContent },
+        { 'Description': fullContent }
+      ];
+
+      for (const fields of fieldAttempts) {
+        console.log(`\n   Trying fields:`, Object.keys(fields));
+        try {
+          const testResponse = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ fields })
+          });
+
+          const testResult = await testResponse.json();
+
+          if (testResponse.ok) {
+            console.log(`   ✅ Success with fields:`, Object.keys(fields));
+            console.log(`   Record ID:`, testResult.id);
+            break;
+          } else {
+            console.log(`   ❌ Failed:`, testResult.error?.message || 'Unknown error');
+          }
+        } catch (err) {
+          console.log(`   ❌ Error:`, err.message);
+        }
+      }
+    }
+  }
+} catch (error) {
+  console.error('   Error:', error.message);
 }
 
 console.log('\n=== End of Debug Test ===');
