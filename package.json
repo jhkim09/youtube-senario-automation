@@ -2,10 +2,10 @@
   "name": "youtube-scenario-automation",
   "version": "1.0.0",
   "description": "YouTube 시나리오 자동 생성 및 업로드 자동화",
-  "main": "index.js",
+  "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node src/server.js",
     "server": "node src/server.js",
     "dev": "node --watch src/index.js",
     "dev-server": "node --watch src/server.js",
