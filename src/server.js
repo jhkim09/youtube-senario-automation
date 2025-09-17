@@ -206,9 +206,11 @@ app.post('/webhook/make', async (req, res) => {
     const referencesArray = Array.isArray(references) ? references :
                            (typeof references === 'string' && references ? references.split(',').map(r => r.trim()) : []);
 
-    const scenario = await scenarioService.generateScenario(topic, {
+    logger.info(`3개 시나리오 생성 시작: ${topic}`);
+
+    const scenarios = await scenarioService.generateThreeScenarios(topic, {
       tone: tone || 'informative',
-      length: length || 'medium',
+      length: length || 'short',  // 기본값 5분
       targetAudience: targetAudience || 'general',
       videoType: videoType || 'educational',
       materials: materialsArray,
@@ -216,11 +218,15 @@ app.post('/webhook/make', async (req, res) => {
       references: referencesArray
     });
 
-    scenario.generatedAt = new Date().toISOString();
-    scenario.topic = topic;
+    // 각 시나리오에 메타데이터 추가
+    scenarios.forEach(scenario => {
+      scenario.generatedAt = new Date().toISOString();
+      scenario.topic = topic;
+      scenario.options = { tone, length, targetAudience, videoType };
+    });
 
-    // Airtable에 저장 옵션이 있으면 저장
-    if (shouldSaveToAirtable === true) {
+    // Airtable에 저장 옵션이 있으면 모든 시나리오 저장
+    if (shouldSaveToAirtable === true && scenarios.length > 0) {
       logger.info('Airtable 저장 시도...', {
         hasApiKey: !!process.env.AIRTABLE_API_KEY,
         hasBaseId: !!process.env.AIRTABLE_BASE_ID,
@@ -228,14 +234,17 @@ app.post('/webhook/make', async (req, res) => {
       });
 
       if (process.env.AIRTABLE_API_KEY && process.env.AIRTABLE_BASE_ID) {
-        try {
-          // 함수를 직접 여기에 인라인으로 작성
-          const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
-            .base(process.env.AIRTABLE_BASE_ID);
-          const tableName = process.env.AIRTABLE_TABLE_NAME || 'Table 1';
+        const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
+          .base(process.env.AIRTABLE_BASE_ID);
+        const tableName = process.env.AIRTABLE_TABLE_NAME || 'Table 1';
 
-          // Combine all content into single field for Attachment Summary
-          const fullContent = `
+        const airtableResults = [];
+
+        for (const scenario of scenarios) {
+          try {
+            // 각 시나리오를 개별적으로 저장
+            const fullContent = `
+=== 버전 ${scenario.version} ===
 주제: ${scenario.topic}
 제목: ${scenario.title || ''}
 
@@ -259,31 +268,37 @@ ${scenario.tags ? scenario.tags.join(', ') : ''}
 
 생성 시간: ${scenario.generatedAt}
 톤: ${scenario.options?.tone || ''}
-길이: ${scenario.options?.length || ''}
+길이: ${scenario.options?.length || 'short'}
 대상: ${scenario.options?.targetAudience || ''}
 유형: ${scenario.options?.videoType || ''}
-          `.trim();
+            `.trim();
 
-          const airtableResult = await base(tableName).create({
-            'Attachment Summary': fullContent
-          });
+            const airtableResult = await base(tableName).create({
+              'Attachment Summary': fullContent
+            });
 
-          scenario.airtableId = airtableResult.id;
-          logger.info(`Airtable 저장 완료: ${airtableResult.id}`);
-        } catch (airtableError) {
-          logger.error('Airtable 저장 실패:', airtableError);
-          console.error('Airtable 저장 에러 상세:', airtableError);
-          scenario.airtableError = airtableError.message || airtableError.toString();
+            scenario.airtableId = airtableResult.id;
+            airtableResults.push(airtableResult.id);
+            logger.info(`Airtable 저장 완료 - 버전 ${scenario.version}: ${airtableResult.id}`);
+          } catch (airtableError) {
+            logger.error(`Airtable 저장 실패 - 버전 ${scenario.version}:`, airtableError);
+            scenario.airtableError = airtableError.message || airtableError.toString();
+          }
+        }
+
+        if (airtableResults.length > 0) {
+          logger.info(`Airtable에 ${airtableResults.length}개 시나리오 저장 완료`);
         }
       } else {
         logger.warn('Airtable 환경 변수가 설정되지 않음');
-        scenario.airtableError = 'Airtable 환경 변수 미설정';
+        scenarios.forEach(s => s.airtableError = 'Airtable 환경 변수 미설정');
       }
     }
 
     res.json({
       success: true,
-      data: scenario
+      count: scenarios.length,
+      data: scenarios
     });
   } catch (error) {
     logger.error('웹훅 처리 실패:', error);

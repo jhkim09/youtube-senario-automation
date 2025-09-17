@@ -14,14 +14,14 @@ class ScenarioService {
     }
   }
 
-  async generateScenario(topic, options = {}) {
+  async generateScenario(topic, options = {}, variation = 0) {
     if (!this.openai) {
       throw new Error('OpenAI API 키가 설정되지 않았습니다.');
     }
 
     const {
       tone = 'informative',
-      length = 'medium',
+      length = 'short',  // 기본값을 short (5분)로 변경
       targetAudience = 'general',
       videoType = 'educational',
       materials = [],
@@ -30,7 +30,15 @@ class ScenarioService {
     } = options;
 
     try {
-      const prompt = this.buildPrompt(topic, tone, length, targetAudience, videoType, materials, keywords, references);
+      // 각 버전에 대한 다른 접근 방식
+      const approaches = [
+        "초보자 친화적이고 쉬운 설명 위주로",
+        "실제 사례와 예시를 중심으로",
+        "전문적이고 심층적인 내용으로"
+      ];
+
+      const promptVariation = variation > 0 ? `\n\n접근 방식: ${approaches[variation % 3]}` : '';
+      const prompt = this.buildPrompt(topic, tone, length, targetAudience, videoType, materials, keywords, references) + promptVariation;
 
       const completion = await this.openai.chat.completions.create({
         model: config.openai.model,
@@ -44,18 +52,40 @@ class ScenarioService {
             content: prompt
           }
         ],
-        temperature: 0.7,
+        temperature: 0.8 + (variation * 0.1),  // 각 버전마다 다른 창의성
         max_tokens: 2000,
       });
 
       const scenario = completion.choices[0].message.content;
-      logger.info(`시나리오 생성 완료: ${topic}`);
+      logger.info(`시나리오 생성 완료: ${topic} (버전 ${variation + 1})`);
 
       return this.parseScenario(scenario);
     } catch (error) {
       logger.error('시나리오 생성 실패:', error);
       throw error;
     }
+  }
+
+  async generateThreeScenarios(topic, options = {}) {
+    const scenarios = [];
+
+    for (let i = 0; i < 3; i++) {
+      try {
+        const scenario = await this.generateScenario(topic, options, i);
+        scenario.version = i + 1;
+        scenario.versionTitle = `${topic} - 버전 ${i + 1}`;
+        scenarios.push(scenario);
+
+        // API 속도 제한 방지를 위한 지연
+        if (i < 2) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      } catch (error) {
+        logger.error(`시나리오 생성 실패 - 버전 ${i + 1}:`, error);
+      }
+    }
+
+    return scenarios;
   }
 
   buildPrompt(topic, tone, length, targetAudience, videoType, materials = [], keywords = [], references = []) {
