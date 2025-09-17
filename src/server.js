@@ -85,30 +85,44 @@ app.get('/api/debug/airtable-test', async (req, res) => {
     return res.json({ error: 'Airtable credentials not configured' });
   }
 
-  const tableName = process.env.AIRTABLE_TABLE_NAME || 'table1';
+  // Try different table names
+  const tableToTry = req.query.table || process.env.AIRTABLE_TABLE_NAME || 'table1';
+  const tableNames = [tableToTry, 'Table1', 'table1', 'youtube', 'Youtube', 'Table 1'];
+  let results = [];
 
-  try {
-    // Direct API call to test
-    const response = await fetch(`https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${tableName}?maxRecords=1`, {
-      headers: {
-        'Authorization': `Bearer ${process.env.AIRTABLE_API_KEY}`
-      }
-    });
+  for (const tableName of [...new Set(tableNames)]) {
+    try {
+      const response = await fetch(`https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${encodeURIComponent(tableName)}?maxRecords=1`, {
+        headers: {
+          'Authorization': `Bearer ${process.env.AIRTABLE_API_KEY}`
+        }
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    res.json({
-      status: response.status,
-      statusText: response.statusText,
-      tableName: tableName,
-      success: response.ok,
-      error: data.error,
-      recordCount: data.records ? data.records.length : 0,
-      fields: data.records && data.records[0] ? Object.keys(data.records[0].fields) : []
-    });
-  } catch (error) {
-    res.json({ error: error.message });
+      results.push({
+        tableName: tableName,
+        status: response.status,
+        success: response.ok,
+        error: data.error?.message,
+        recordCount: data.records ? data.records.length : 0,
+        fields: data.records && data.records[0] ? Object.keys(data.records[0].fields) : []
+      });
+
+      // If successful, stop trying
+      if (response.ok) break;
+    } catch (error) {
+      results.push({
+        tableName: tableName,
+        error: error.message
+      });
+    }
   }
+
+  res.json({
+    baseId: process.env.AIRTABLE_BASE_ID,
+    results: results
+  });
 });
 
 // 시나리오 생성 API
