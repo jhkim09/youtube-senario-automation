@@ -1,0 +1,24 @@
+{
+  "topic": "AI 시대의 프로그래밍 입문",
+  "materials": [
+    "ChatGPT 활용법",
+    "GitHub Copilot 소개",
+    "Python 기초 문법"
+  ],
+  "keywords": [
+    "AI",
+    "프로그래밍",
+    "코딩",
+    "자동화",
+    "Python"
+  ],
+  "references": [
+    "https://docs.python.org",
+    "OpenAI 공식 문서"
+  ],
+  "tone": "informative",
+  "length": "medium",
+  "targetAudience": "beginner",
+  "videoType": "educational",
+  "shouldSaveToAirtable": true
+}
