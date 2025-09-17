@@ -89,7 +89,8 @@ app.get('/', (req, res) => {
       'POST /webhook/make': 'Make.com 웹훅',
       'POST /api/save-to-airtable': 'Airtable 저장',
       'GET /api/scenarios': '시나리오 목록 조회',
-      'GET /api/debug/env': '환경 변수 확인 (디버그)'
+      'GET /api/debug/env': '환경 변수 확인 (디버그)',
+      'POST /api/debug/airtable-write-test': 'Airtable 쓰기 테스트 (OpenAI 없이)'
     }
   });
 });
@@ -104,6 +105,40 @@ app.get('/api/debug/env', (req, res) => {
     airtableBaseId: process.env.AIRTABLE_BASE_ID ? `${process.env.AIRTABLE_BASE_ID.substring(0, 6)}...` : 'Not set',
     airtableKeyPrefix: process.env.AIRTABLE_API_KEY ? process.env.AIRTABLE_API_KEY.substring(0, 7) : 'Not set'
   });
+});
+
+// Airtable 쓰기 테스트 (OpenAI 없이)
+app.post('/api/debug/airtable-write-test', async (req, res) => {
+  try {
+    const testScenario = {
+      topic: req.body.topic || '디버그 테스트 주제',
+      title: req.body.title || '디버그 테스트 제목',
+      thumbnail: '썸네일 테스트 내용',
+      intro: '인트로 테스트 내용',
+      mainContent: '본문 테스트 내용',
+      conclusion: '결론 테스트 내용',
+      description: '설명 테스트 내용',
+      tags: ['테스트', '디버그', 'airtable'],
+      generatedAt: new Date().toISOString()
+    };
+
+    logger.info('Airtable 쓰기 테스트 시작');
+
+    const result = await saveToAirtable(testScenario);
+
+    res.json({
+      success: true,
+      message: 'Airtable 쓰기 테스트 성공',
+      airtableId: result.id,
+      fields: result.fields
+    });
+  } catch (error) {
+    logger.error('Airtable 쓰기 테스트 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
 // Airtable 연결 테스트 (디버그용)

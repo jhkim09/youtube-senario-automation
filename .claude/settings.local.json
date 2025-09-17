@@ -11,7 +11,10 @@
       "Bash(git remote add:*)",
       "Bash(curl:*)",
       "Bash(echo:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(node:*)",
+      "Bash(git reset:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []
