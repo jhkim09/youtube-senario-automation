@@ -22,34 +22,61 @@ app.use((req, res, next) => {
   next();
 });
 
-// Airtable 저장 함수 정의
+// Airtable 저장 함수 정의 (Direct API 사용)
 const saveToAirtable = async (scenario) => {
   if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
     throw new Error('Airtable 설정이 없습니다.');
   }
 
-  const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
-    .base(process.env.AIRTABLE_BASE_ID);
+  const tableName = encodeURIComponent(process.env.AIRTABLE_TABLE_NAME || 'Table 1');
+  const baseId = process.env.AIRTABLE_BASE_ID;
+  const apiKey = process.env.AIRTABLE_API_KEY;
 
-  const tableName = process.env.AIRTABLE_TABLE_NAME || 'Table 1';
+  const fullContent = `
+주제: ${scenario.topic}
+제목: ${scenario.title || ''}
 
-  const record = await base(tableName).create({
-    'Topic': scenario.topic,
-    'Title': scenario.title,
-    'Thumbnail': scenario.thumbnail,
-    'Intro': scenario.intro,
-    'Main Content': scenario.mainContent,
-    'Conclusion': scenario.conclusion,
-    'Description': scenario.description,
-    'Tags': scenario.tags ? scenario.tags.join(', ') : '',
-    'Generated At': scenario.generatedAt,
-    'Tone': scenario.options?.tone,
-    'Length': scenario.options?.length,
-    'Target Audience': scenario.options?.targetAudience,
-    'Video Type': scenario.options?.videoType
+=== 썸네일 아이디어 ===
+${scenario.thumbnail || ''}
+
+=== 인트로 ===
+${scenario.intro || ''}
+
+=== 본문 ===
+${scenario.mainContent || ''}
+
+=== 결론 ===
+${scenario.conclusion || ''}
+
+=== 영상 설명 ===
+${scenario.description || ''}
+
+=== 태그 ===
+${scenario.tags ? scenario.tags.join(', ') : ''}
+
+생성 시간: ${scenario.generatedAt || new Date().toISOString()}
+  `.trim();
+
+  const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      fields: {
+        'Attachment Summary': fullContent
+      }
+    })
   });
 
-  return record;
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error?.message || 'Airtable save failed');
+  }
+
+  return result;
 };
 
 // Health check
@@ -234,9 +261,9 @@ app.post('/webhook/make', async (req, res) => {
       });
 
       if (process.env.AIRTABLE_API_KEY && process.env.AIRTABLE_BASE_ID) {
-        const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
-          .base(process.env.AIRTABLE_BASE_ID);
-        const tableName = process.env.AIRTABLE_TABLE_NAME || 'Table 1';
+        const tableName = encodeURIComponent(process.env.AIRTABLE_TABLE_NAME || 'Table 1');
+        const baseId = process.env.AIRTABLE_BASE_ID;
+        const apiKey = process.env.AIRTABLE_API_KEY;
 
         const airtableResults = [];
 
@@ -273,13 +300,29 @@ ${scenario.tags ? scenario.tags.join(', ') : ''}
 유형: ${scenario.options?.videoType || ''}
             `.trim();
 
-            const airtableResult = await base(tableName).create({
-              'Attachment Summary': fullContent
+            // Direct API call instead of using Airtable library
+            const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                fields: {
+                  'Attachment Summary': fullContent
+                }
+              })
             });
 
-            scenario.airtableId = airtableResult.id;
-            airtableResults.push(airtableResult.id);
-            logger.info(`Airtable 저장 완료 - 버전 ${scenario.version}: ${airtableResult.id}`);
+            const result = await response.json();
+
+            if (response.ok) {
+              scenario.airtableId = result.id;
+              airtableResults.push(result.id);
+              logger.info(`Airtable 저장 완료 - 버전 ${scenario.version}: ${result.id}`);
+            } else {
+              throw new Error(result.error?.message || 'Unknown error');
+            }
           } catch (airtableError) {
             logger.error(`Airtable 저장 실패 - 버전 ${scenario.version}:`, airtableError);
             scenario.airtableError = airtableError.message || airtableError.toString();
