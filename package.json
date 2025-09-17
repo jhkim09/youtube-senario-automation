@@ -1,0 +1,38 @@
+{
+  "name": "youtube-scenario-automation",
+  "version": "1.0.0",
+  "description": "YouTube 시나리오 자동 생성 및 업로드 자동화",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "server": "node src/server.js",
+    "dev": "node --watch src/index.js",
+    "dev-server": "node --watch src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "youtube",
+    "automation",
+    "scenario",
+    "api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google-cloud/local-auth": "^3.0.1",
+    "airtable": "^0.12.2",
+    "body-parser": "^2.2.0",
+    "commander": "^14.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^5.1.0",
+    "googleapis": "^144.0.0",
+    "node-cron": "^3.0.3",
+    "openai": "^4.77.3",
+    "winston": "^3.15.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.15.0"
+  }
+}

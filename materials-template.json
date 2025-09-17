@@ -1,0 +1,28 @@
+{
+  "topic": "2025년 AI 트렌드",
+  "materials": [
+    "OpenAI의 GPT-5 출시 예정",
+    "구글의 Gemini Ultra 성능 벤치마크",
+    "AI 에이전트 시대의 도래",
+    "생성형 AI 규제 동향",
+    "기업용 AI 도입 사례 증가"
+  ],
+  "keywords": [
+    "인공지능",
+    "GPT-5",
+    "Gemini",
+    "AI 에이전트",
+    "생성형 AI",
+    "LLM",
+    "머신러닝",
+    "딥러닝",
+    "AI 규제",
+    "AGI"
+  ],
+  "references": [
+    "OpenAI 공식 블로그",
+    "Google AI Research Papers",
+    "MIT Technology Review",
+    "Gartner AI Trends Report 2025"
+  ]
+}
