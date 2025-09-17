@@ -4,12 +4,21 @@ import logger from '../utils/logger.js';
 
 class ScenarioService {
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: config.openai.apiKey,
-    });
+    if (config.openai.apiKey) {
+      this.openai = new OpenAI({
+        apiKey: config.openai.apiKey,
+      });
+    } else {
+      console.warn('⚠️ OpenAI API 키가 설정되지 않았습니다. 시나리오 생성 기능을 사용할 수 없습니다.');
+      this.openai = null;
+    }
   }
 
   async generateScenario(topic, options = {}) {
+    if (!this.openai) {
+      throw new Error('OpenAI API 키가 설정되지 않았습니다.');
+    }
+
     const {
       tone = 'informative',
       length = 'medium',
