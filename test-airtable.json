@@ -1,0 +1,9 @@
+{
+  "topic": "Airtable 저장 테스트",
+  "materials": ["테스트 소재1", "테스트 소재2"],
+  "keywords": ["테스트", "Airtable", "자동화"],
+  "references": ["참고자료1"],
+  "tone": "informative",
+  "length": "short",
+  "saveToAirtable": true
+}
