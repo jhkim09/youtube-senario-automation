@@ -13,6 +13,15 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Request logging middleware
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.path}`, {
+    ip: req.ip,
+    userAgent: req.get('user-agent')
+  });
+  next();
+});
+
 // Airtable 저장 함수 정의
 const saveToAirtable = async (scenario) => {
   if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
@@ -120,7 +129,10 @@ app.post('/api/generate-scenario', async (req, res) => {
 // Make.com 웹훅 엔드포인트
 app.post('/webhook/make', async (req, res) => {
   try {
-    logger.info('Make.com 웹훅 수신');
+    logger.info('Make.com 웹훅 수신', {
+      headers: req.headers,
+      body: req.body
+    });
 
     // Make.com에서 보낸 데이터 처리
     const {
@@ -162,10 +174,11 @@ app.post('/webhook/make', async (req, res) => {
 
     // Airtable에 저장 옵션이 있으면 저장
     if (shouldSaveToAirtable === true) {
-      console.log('Airtable 저장 시도...');
-      console.log('API Key:', process.env.AIRTABLE_API_KEY ? 'Set' : 'Not set');
-      console.log('Base ID:', process.env.AIRTABLE_BASE_ID ? 'Set' : 'Not set');
-      console.log('Table Name:', process.env.AIRTABLE_TABLE_NAME || 'youtube');
+      logger.info('Airtable 저장 시도...', {
+        hasApiKey: !!process.env.AIRTABLE_API_KEY,
+        hasBaseId: !!process.env.AIRTABLE_BASE_ID,
+        tableName: process.env.AIRTABLE_TABLE_NAME || 'youtube'
+      });
 
       if (process.env.AIRTABLE_API_KEY && process.env.AIRTABLE_BASE_ID) {
         try {
@@ -198,7 +211,7 @@ app.post('/webhook/make', async (req, res) => {
           scenario.airtableError = airtableError.message || airtableError.toString();
         }
       } else {
-        console.log('Airtable 환경 변수가 설정되지 않음');
+        logger.warn('Airtable 환경 변수가 설정되지 않음');
         scenario.airtableError = 'Airtable 환경 변수 미설정';
       }
     }
@@ -285,4 +298,11 @@ app.get('/api/scenarios', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
   logger.info(`서버 시작: 포트 ${PORT}`);
+  logger.info('환경 변수 상태:', {
+    NODE_ENV: process.env.NODE_ENV || 'development',
+    hasOpenAI: !!process.env.OPENAI_API_KEY,
+    hasAirtableKey: !!process.env.AIRTABLE_API_KEY,
+    hasAirtableBase: !!process.env.AIRTABLE_BASE_ID,
+    airtableTable: process.env.AIRTABLE_TABLE_NAME || 'youtube'
+  });
 });
