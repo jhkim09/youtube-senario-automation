@@ -118,24 +118,54 @@ class ScenarioService {
     };
 
     try {
-      const titleMatch = scenario.match(/제목.*?:(.*?)(?=썸네일|$)/is);
-      const thumbnailMatch = scenario.match(/썸네일.*?:(.*?)(?=인트로|$)/is);
-      const introMatch = scenario.match(/인트로.*?:(.*?)(?=본문|주요|$)/is);
-      const mainMatch = scenario.match(/(?:본문|주요 내용).*?:(.*?)(?=결론|$)/is);
-      const conclusionMatch = scenario.match(/결론.*?:(.*?)(?=설명|$)/is);
-      const descriptionMatch = scenario.match(/설명.*?:(.*?)(?=태그|$)/is);
-      const tagsMatch = scenario.match(/태그.*?:(.*?)$/is);
+      // 전체 시나리오를 섹션별로 분리
+      const lines = scenario.split('\n');
+      let currentSection = '';
+      let sectionContent = {};
 
-      sections.title = titleMatch ? titleMatch[1].trim() : '';
-      sections.thumbnail = thumbnailMatch ? thumbnailMatch[1].trim() : '';
-      sections.intro = introMatch ? introMatch[1].trim() : '';
-      sections.mainContent = mainMatch ? mainMatch[1].trim() : '';
-      sections.conclusion = conclusionMatch ? conclusionMatch[1].trim() : '';
-      sections.description = descriptionMatch ? descriptionMatch[1].trim() : '';
+      for (const line of lines) {
+        // 섹션 헤더 감지
+        if (line.match(/^#*\s*\d*\.?\s*(Title|제목)/i)) {
+          currentSection = 'title';
+          sectionContent[currentSection] = [];
+        } else if (line.match(/^#*\s*\d*\.?\s*(Thumbnail|썸네일)/i)) {
+          currentSection = 'thumbnail';
+          sectionContent[currentSection] = [];
+        } else if (line.match(/^#*\s*\d*\.?\s*(Intro|인트로)/i)) {
+          currentSection = 'intro';
+          sectionContent[currentSection] = [];
+        } else if (line.match(/^#*\s*\d*\.?\s*(Main Content|본문|주요 내용)/i)) {
+          currentSection = 'mainContent';
+          sectionContent[currentSection] = [];
+        } else if (line.match(/^#*\s*\d*\.?\s*(Conclusion|결론)/i)) {
+          currentSection = 'conclusion';
+          sectionContent[currentSection] = [];
+        } else if (line.match(/^#*\s*\d*\.?\s*(Description|설명)/i)) {
+          currentSection = 'description';
+          sectionContent[currentSection] = [];
+        } else if (line.match(/^#*\s*\d*\.?\s*(Tags|태그)/i)) {
+          currentSection = 'tags';
+          sectionContent[currentSection] = [];
+        } else if (currentSection && line.trim()) {
+          // 현재 섹션에 내용 추가
+          sectionContent[currentSection].push(line.trim());
+        }
+      }
 
-      if (tagsMatch) {
-        const tagsText = tagsMatch[1].trim();
-        sections.tags = tagsText.split(/[,\n]/).map(tag => tag.trim()).filter(tag => tag);
+      // 각 섹션 조합
+      for (const [key, lines] of Object.entries(sectionContent)) {
+        if (key === 'tags') {
+          const tagsText = lines.join(' ');
+          sections.tags = tagsText.split(/[,#\s]+/).filter(tag => tag && !tag.match(/^[\d\.]+$/));
+        } else {
+          sections[key] = lines.join('\n').replace(/^[:\-]\s*/, '').trim();
+        }
+      }
+
+      // 섹션이 비어있으면 전체 시나리오 사용
+      if (!sections.title && !sections.mainContent) {
+        sections.title = scenario.split('\n')[0].substring(0, 100);
+        sections.mainContent = scenario;
       }
 
       return sections;
