@@ -132,7 +132,7 @@ app.post('/webhook/make', async (req, res) => {
       length = null,
       targetAudience = 'general',
       videoType = 'educational',
-      saveToAirtable = false
+      shouldSaveToAirtable = false
     } = req.body;
 
     if (!topic) {
@@ -161,21 +161,41 @@ app.post('/webhook/make', async (req, res) => {
     scenario.topic = topic;
 
     // Airtable에 저장 옵션이 있으면 저장
-    if (saveToAirtable) {
+    if (shouldSaveToAirtable === true) {
       console.log('Airtable 저장 시도...');
       console.log('API Key:', process.env.AIRTABLE_API_KEY ? 'Set' : 'Not set');
       console.log('Base ID:', process.env.AIRTABLE_BASE_ID ? 'Set' : 'Not set');
-      console.log('Table Name:', process.env.AIRTABLE_TABLE_NAME || 'Not set');
+      console.log('Table Name:', process.env.AIRTABLE_TABLE_NAME || 'youtube');
 
       if (process.env.AIRTABLE_API_KEY && process.env.AIRTABLE_BASE_ID) {
         try {
-          const airtableResult = await saveToAirtable(scenario);
+          // 함수를 직접 여기에 인라인으로 작성
+          const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
+            .base(process.env.AIRTABLE_BASE_ID);
+          const tableName = process.env.AIRTABLE_TABLE_NAME || 'youtube';
+
+          const airtableResult = await base(tableName).create({
+            'Topic': scenario.topic,
+            'Title': scenario.title || '',
+            'Thumbnail': scenario.thumbnail || '',
+            'Intro': scenario.intro || '',
+            'Main Content': scenario.mainContent || '',
+            'Conclusion': scenario.conclusion || '',
+            'Description': scenario.description || '',
+            'Tags': scenario.tags ? scenario.tags.join(', ') : '',
+            'Generated At': scenario.generatedAt,
+            'Tone': scenario.options?.tone || '',
+            'Length': scenario.options?.length || '',
+            'Target Audience': scenario.options?.targetAudience || '',
+            'Video Type': scenario.options?.videoType || ''
+          });
+
           scenario.airtableId = airtableResult.id;
           logger.info(`Airtable 저장 완료: ${airtableResult.id}`);
         } catch (airtableError) {
           logger.error('Airtable 저장 실패:', airtableError);
-          console.error('Airtable 저장 에러 상세:', airtableError.message);
-          scenario.airtableError = airtableError.message;
+          console.error('Airtable 저장 에러 상세:', airtableError);
+          scenario.airtableError = airtableError.message || airtableError.toString();
         }
       } else {
         console.log('Airtable 환경 변수가 설정되지 않음');
