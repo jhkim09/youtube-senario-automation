@@ -31,7 +31,7 @@ const saveToAirtable = async (scenario) => {
   const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
     .base(process.env.AIRTABLE_BASE_ID);
 
-  const tableName = process.env.AIRTABLE_TABLE_NAME || 'table1';
+  const tableName = process.env.AIRTABLE_TABLE_NAME || 'Table 1';
 
   const record = await base(tableName).create({
     'Topic': scenario.topic,
@@ -232,22 +232,40 @@ app.post('/webhook/make', async (req, res) => {
           // 함수를 직접 여기에 인라인으로 작성
           const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
             .base(process.env.AIRTABLE_BASE_ID);
-          const tableName = process.env.AIRTABLE_TABLE_NAME || 'table1';
+          const tableName = process.env.AIRTABLE_TABLE_NAME || 'Table 1';
+
+          // Combine all content into single field for Attachment Summary
+          const fullContent = `
+주제: ${scenario.topic}
+제목: ${scenario.title || ''}
+
+=== 썸네일 아이디어 ===
+${scenario.thumbnail || ''}
+
+=== 인트로 ===
+${scenario.intro || ''}
+
+=== 본문 ===
+${scenario.mainContent || ''}
+
+=== 결론 ===
+${scenario.conclusion || ''}
+
+=== 영상 설명 ===
+${scenario.description || ''}
+
+=== 태그 ===
+${scenario.tags ? scenario.tags.join(', ') : ''}
+
+생성 시간: ${scenario.generatedAt}
+톤: ${scenario.options?.tone || ''}
+길이: ${scenario.options?.length || ''}
+대상: ${scenario.options?.targetAudience || ''}
+유형: ${scenario.options?.videoType || ''}
+          `.trim();
 
           const airtableResult = await base(tableName).create({
-            'Topic': scenario.topic,
-            'Title': scenario.title || '',
-            'Thumbnail': scenario.thumbnail || '',
-            'Intro': scenario.intro || '',
-            'Main Content': scenario.mainContent || '',
-            'Conclusion': scenario.conclusion || '',
-            'Description': scenario.description || '',
-            'Tags': scenario.tags ? scenario.tags.join(', ') : '',
-            'Generated At': scenario.generatedAt,
-            'Tone': scenario.options?.tone || '',
-            'Length': scenario.options?.length || '',
-            'Target Audience': scenario.options?.targetAudience || '',
-            'Video Type': scenario.options?.videoType || ''
+            'Attachment Summary': fullContent
           });
 
           scenario.airtableId = airtableResult.id;
@@ -312,7 +330,7 @@ app.get('/api/scenarios', async (req, res) => {
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
       .base(process.env.AIRTABLE_BASE_ID);
 
-    const tableName = process.env.AIRTABLE_TABLE_NAME || 'table1';
+    const tableName = process.env.AIRTABLE_TABLE_NAME || 'Table 1';
     const records = [];
 
     await base(tableName).select({
