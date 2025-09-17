@@ -136,6 +136,61 @@ app.post('/api/debug/airtable-write-test', async (req, res) => {
     logger.error('Airtable 쓰기 테스트 실패:', error);
     res.status(500).json({
       success: false,
+      error: error.message,
+      details: error.stack
+    });
+  }
+});
+
+// Airtable 직접 쓰기 테스트 (최소화)
+app.post('/api/debug/airtable-minimal-test', async (req, res) => {
+  try {
+    const tableName = encodeURIComponent('Table 1');
+    const baseId = 'app0nk3oQJxZCqmDn';
+    const apiKey = process.env.AIRTABLE_API_KEY;
+
+    if (!apiKey) {
+      throw new Error('No API key');
+    }
+
+    const testData = {
+      fields: {
+        'Attachment Summary': `Test at ${new Date().toISOString()}`
+      }
+    };
+
+    logger.info('Minimal Airtable test:', { baseId, tableName });
+
+    const response = await fetch(`https://api.airtable.com/v0/${baseId}/${tableName}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(testData)
+    });
+
+    const result = await response.json();
+
+    logger.info('Airtable response:', { status: response.status, result });
+
+    if (response.ok) {
+      res.json({
+        success: true,
+        id: result.id,
+        fields: result.fields
+      });
+    } else {
+      res.status(response.status).json({
+        success: false,
+        status: response.status,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    logger.error('Minimal test error:', error);
+    res.status(500).json({
+      success: false,
       error: error.message
     });
   }
