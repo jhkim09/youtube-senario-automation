@@ -13,6 +13,36 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Airtable 저장 함수 정의
+const saveToAirtable = async (scenario) => {
+  if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
+    throw new Error('Airtable 설정이 없습니다.');
+  }
+
+  const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
+    .base(process.env.AIRTABLE_BASE_ID);
+
+  const tableName = process.env.AIRTABLE_TABLE_NAME || 'youtube';
+
+  const record = await base(tableName).create({
+    'Topic': scenario.topic,
+    'Title': scenario.title,
+    'Thumbnail': scenario.thumbnail,
+    'Intro': scenario.intro,
+    'Main Content': scenario.mainContent,
+    'Conclusion': scenario.conclusion,
+    'Description': scenario.description,
+    'Tags': scenario.tags ? scenario.tags.join(', ') : '',
+    'Generated At': scenario.generatedAt,
+    'Tone': scenario.options?.tone,
+    'Length': scenario.options?.length,
+    'Target Audience': scenario.options?.targetAudience,
+    'Video Type': scenario.options?.videoType
+  });
+
+  return record;
+};
+
 // Health check
 app.get('/', (req, res) => {
   res.json({
@@ -166,35 +196,6 @@ app.post('/webhook/make', async (req, res) => {
   }
 });
 
-// Airtable 저장 함수
-async function saveToAirtable(scenario) {
-  if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
-    throw new Error('Airtable 설정이 없습니다.');
-  }
-
-  const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
-    .base(process.env.AIRTABLE_BASE_ID);
-
-  const tableName = process.env.AIRTABLE_TABLE_NAME || 'youtube';
-
-  const record = await base(tableName).create({
-    'Topic': scenario.topic,
-    'Title': scenario.title,
-    'Thumbnail': scenario.thumbnail,
-    'Intro': scenario.intro,
-    'Main Content': scenario.mainContent,
-    'Conclusion': scenario.conclusion,
-    'Description': scenario.description,
-    'Tags': scenario.tags.join(', '),
-    'Generated At': scenario.generatedAt,
-    'Tone': scenario.options?.tone,
-    'Length': scenario.options?.length,
-    'Target Audience': scenario.options?.targetAudience,
-    'Video Type': scenario.options?.videoType
-  });
-
-  return record;
-}
 
 // Airtable에 직접 저장 API
 app.post('/api/save-to-airtable', async (req, res) => {
