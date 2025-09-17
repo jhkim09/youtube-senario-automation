@@ -45,15 +45,15 @@ class ScenarioService {
         messages: [
           {
             role: "system",
-            content: "당신은 YouTube 콘텐츠 크리에이터를 위한 전문 시나리오 작가입니다. 매력적이고 시청자 참여를 유도하는 비디오 스크립트를 작성합니다."
+            content: "당신은 유튜브용 한국어 스크립트를 쓰는 시니어 작가이자 연출가입니다. 정확한 5분 분량의 완전한 스크립트를 작성하며, 모든 섹션을 실제 내용으로 꽉 채웁니다. 생략 부호나 대체 문구를 절대 사용하지 않습니다."
           },
           {
             role: "user",
             content: prompt
           }
         ],
-        temperature: 0.8 + (variation * 0.1),  // 각 버전마다 다른 창의성
-        max_tokens: 2000,
+        temperature: 0.7 + (variation * 0.1),  // 각 버전마다 다른 창의성
+        max_tokens: 4000,  // 더 긴 스크립트를 위해 증가
       });
 
       const scenario = completion.choices[0].message.content;
@@ -89,49 +89,87 @@ class ScenarioService {
   }
 
   buildPrompt(topic, tone, length, targetAudience, videoType, materials = [], keywords = [], references = []) {
-    const lengthMap = {
-      'short': '3-5분',
-      'medium': '5-10분',
-      'long': '10-15분'
-    };
+    // 5분 고정 스크립트용 마스터 프롬프트
+    const promptText = `[역할]
+너는 유튜브용 한국어 스크립트를 쓰는 시니어 작가이자 연출가다. 정보 정확성, 구어체 가독성, 리듬감(문장 길이 변화)을 중시한다.
 
-    let promptText = `
-주제: ${topic}
-비디오 유형: ${videoType}
-톤: ${tone}
-길이: ${lengthMap[length]}
-대상 청중: ${targetAudience}`;
+[목표]
+아래 주제로 5분(300±30초) 분량, 말하기 기준 800~1,000자(공백 제외 기준 약 1,100~1,400자) 스크립트를 완성하라. 섹션마다 "실제 내용"을 모두 채우고, 빈칸/대체문구/생략부호(...)를 쓰지 마라.
 
-    if (materials.length > 0) {
-      promptText += `\n\n활용할 소재:`;
-      materials.forEach((material, index) => {
-        promptText += `\n${index + 1}. ${material}`;
-      });
-    }
+[주제/타깃/톤]
+- 주제: ${topic}
+- 핵심청중: ${targetAudience || '일반 시청자'}
+- 톤/페르소나: ${tone === 'informative' ? '친근하지만 전문가다운 신뢰감' : tone === 'casual' ? '편안하고 재미있는 친구' : '교육적이고 차분한'}, 1인 나레이션
+- 비디오 유형: ${videoType}
+${keywords.length > 0 ? `- 핵심 키워드: ${keywords.join(', ')}` : ''}
+${materials.length > 0 ? `- 활용할 소재: ${materials.join(', ')}` : ''}
+${references.length > 0 ? `- 참고 자료: ${references.join(', ')}` : ''}
 
-    if (keywords.length > 0) {
-      promptText += `\n\n핵심 키워드: ${keywords.join(', ')}`;
-    }
+[구조]
+00) 오프닝 훅(15~30초) — 시청 지속률을 위해 놀라움/공감/이득 중 하나로 시작
+01) 섹션 1: 현황과 배경
+    반드시 포함: 최근 동향, 왜 지금 중요한지, 기본 개념 설명
+02) 섹션 2: 핵심 내용 전달
+    반드시 포함: 주요 포인트 3~4개, 구체적 사례, 실제 적용 방법
+03) 섹션 3: 심화 분석
+    반드시 포함: 장단점, 비교 분석, 주의사항, 전문가 팁
+04) 섹션 4: 실전 활용
+    반드시 포함: 단계별 가이드, 체크리스트, 자주 하는 실수와 해결법
+05) 마무리 & CTA — 요약 2문장 + 구독/좋아요/댓글 유도
 
-    if (references.length > 0) {
-      promptText += `\n\n참고 자료:`;
-      references.forEach((ref, index) => {
-        promptText += `\n${index + 1}. ${ref}`;
-      });
-    }
+[연출 지시어]
+- 화면자막: [TEXT: …]
+- B-roll/컷신: [B-ROLL: …]
+- 효과음/음악: [SFX: …]
+- 챕터타임스탬프 포함: 0:00, 0:15… 형식
+- 통계/사실은 구체 수치로. 불확실하면 [FACT-CHECK: …]로 표시
 
-    promptText += `\n\n위 정보를 바탕으로 YouTube 비디오 시나리오를 작성해주세요.
+[산출물 형식]
+=== 제목 (Title) ===
+60자 이내의 클릭 유도형 제목
 
-다음 구조로 작성해주세요:
-1. 제목 (Title): 매력적이고 클릭을 유도하는 제목
-2. 썸네일 아이디어 (Thumbnail Idea): 시각적으로 매력적인 썸네일 설명
-3. 인트로 (Intro): 15-30초의 강력한 오프닝
-4. 본문 (Main Content): 주요 내용을 섹션별로 구성
-5. 결론 (Conclusion): 핵심 요약과 행동 유도
-6. 설명 (Description): YouTube 비디오 설명란에 들어갈 내용
-7. 태그 (Tags): 관련 태그 10개
+=== 썸네일 (Thumbnail) ===
+썸네일 텍스트 + 비주얼 아이디어
 
-각 섹션은 명확하게 구분해주세요.`;
+=== 인트로 (Intro) - 0:00~0:30 ===
+실제 말할 내용 전체 (생략 없이)
+
+=== 본문 (Main Content) - 0:30~4:00 ===
+#### 섹션 1: [제목] (0:30~1:30)
+실제 내용 전체
+
+#### 섹션 2: [제목] (1:30~2:30)
+실제 내용 전체
+
+#### 섹션 3: [제목] (2:30~3:30)
+실제 내용 전체
+
+#### 섹션 4: [제목] (3:30~4:00)
+실제 내용 전체
+
+=== 결론 (Conclusion) - 4:00~4:30 ===
+실제 말할 내용 전체
+
+=== 영상 설명 (Description) ===
+300자 이내, 핵심 키워드 포함
+
+=== 태그 (Tags) ===
+관련 태그 10개 (쉼표 구분)
+
+=== 쇼츠 훅 (Shorts Hooks) ===
+1. [10초 훅 1]
+2. [10초 훅 2]
+3. [10초 훅 3]
+
+[제약/금지]
+- "여기서는 ~를 다루겠다" 같은 메타 문장 금지
+- "자세한 건 다음에" 금지, 모든 섹션은 내용 충실히 채움
+- 과장된 주장 금지, 출처 불명 수치 금지
+- 각 섹션 45~60초 분량 엄수
+- 생략 부호(...), 대체 문구, 빈칸 절대 금지
+
+[출력 언어]
+한국어`;
 
     return promptText;
   }
@@ -144,57 +182,59 @@ class ScenarioService {
       mainContent: '',
       conclusion: '',
       description: '',
-      tags: []
+      tags: [],
+      chapters: [],
+      shortsHooks: []
     };
 
     try {
-      // 전체 시나리오를 섹션별로 분리
-      const lines = scenario.split('\n');
-      let currentSection = '';
-      let sectionContent = {};
+      // 새로운 형식에 맞게 파싱
+      const parts = scenario.split(/===\s*/);
 
-      for (const line of lines) {
-        // 섹션 헤더 감지
-        if (line.match(/^#*\s*\d*\.?\s*(Title|제목)/i)) {
-          currentSection = 'title';
-          sectionContent[currentSection] = [];
-        } else if (line.match(/^#*\s*\d*\.?\s*(Thumbnail|썸네일)/i)) {
-          currentSection = 'thumbnail';
-          sectionContent[currentSection] = [];
-        } else if (line.match(/^#*\s*\d*\.?\s*(Intro|인트로)/i)) {
-          currentSection = 'intro';
-          sectionContent[currentSection] = [];
-        } else if (line.match(/^#*\s*\d*\.?\s*(Main Content|본문|주요 내용)/i)) {
-          currentSection = 'mainContent';
-          sectionContent[currentSection] = [];
-        } else if (line.match(/^#*\s*\d*\.?\s*(Conclusion|결론)/i)) {
-          currentSection = 'conclusion';
-          sectionContent[currentSection] = [];
-        } else if (line.match(/^#*\s*\d*\.?\s*(Description|설명)/i)) {
-          currentSection = 'description';
-          sectionContent[currentSection] = [];
-        } else if (line.match(/^#*\s*\d*\.?\s*(Tags|태그)/i)) {
-          currentSection = 'tags';
-          sectionContent[currentSection] = [];
-        } else if (currentSection && line.trim()) {
-          // 현재 섹션에 내용 추가
-          sectionContent[currentSection].push(line.trim());
+      for (const part of parts) {
+        if (!part.trim()) continue;
+
+        const lines = part.split('\n');
+        const header = lines[0].toLowerCase();
+        const content = lines.slice(1).join('\n').trim();
+
+        if (header.includes('제목') || header.includes('title')) {
+          sections.title = content;
+        } else if (header.includes('썸네일') || header.includes('thumbnail')) {
+          sections.thumbnail = content;
+        } else if (header.includes('인트로') || header.includes('intro')) {
+          // 타임스탬프 제거하고 내용만 추출
+          sections.intro = content.replace(/\d+:\d+~?\d*:\d*/g, '').trim();
+        } else if (header.includes('본문') || header.includes('main content')) {
+          sections.mainContent = content;
+          // 챕터 타임스탬프 추출
+          const chapterMatches = content.match(/\d+:\d+/g);
+          if (chapterMatches) {
+            sections.chapters = chapterMatches;
+          }
+        } else if (header.includes('결론') || header.includes('conclusion')) {
+          sections.conclusion = content.replace(/\d+:\d+~?\d*:\d*/g, '').trim();
+        } else if (header.includes('영상 설명') || header.includes('description')) {
+          sections.description = content;
+        } else if (header.includes('태그') || header.includes('tags')) {
+          sections.tags = content.split(/[,，\n]+/).map(tag => tag.trim()).filter(tag => tag);
+        } else if (header.includes('쇼츠 훅') || header.includes('shorts hook')) {
+          // 번호 매긴 리스트 파싱
+          const hooks = content.match(/\d+\.\s*(.+)/g);
+          if (hooks) {
+            sections.shortsHooks = hooks.map(h => h.replace(/^\d+\.\s*/, '').trim());
+          }
         }
       }
 
-      // 각 섹션 조합
-      for (const [key, lines] of Object.entries(sectionContent)) {
-        if (key === 'tags') {
-          const tagsText = lines.join(' ');
-          sections.tags = tagsText.split(/[,#\s]+/).filter(tag => tag && !tag.match(/^[\d\.]+$/));
-        } else {
-          sections[key] = lines.join('\n').replace(/^[:\-]\s*/, '').trim();
-        }
+      // 태그가 10개 이상이면 10개로 제한
+      if (sections.tags.length > 10) {
+        sections.tags = sections.tags.slice(0, 10);
       }
 
       // 섹션이 비어있으면 전체 시나리오 사용
       if (!sections.title && !sections.mainContent) {
-        sections.title = scenario.split('\n')[0].substring(0, 100);
+        sections.title = scenario.split('\n')[0].substring(0, 60);
         sections.mainContent = scenario;
       }
 
