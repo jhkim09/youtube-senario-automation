@@ -22,8 +22,20 @@ app.get('/', (req, res) => {
       'POST /api/generate-scenario': '시나리오 생성',
       'POST /webhook/make': 'Make.com 웹훅',
       'POST /api/save-to-airtable': 'Airtable 저장',
-      'GET /api/scenarios': '시나리오 목록 조회'
+      'GET /api/scenarios': '시나리오 목록 조회',
+      'GET /api/debug/env': '환경 변수 확인 (디버그)'
     }
+  });
+});
+
+// 환경 변수 확인 (디버그용)
+app.get('/api/debug/env', (req, res) => {
+  res.json({
+    hasOpenAI: !!process.env.OPENAI_API_KEY,
+    hasAirtableKey: !!process.env.AIRTABLE_API_KEY,
+    hasAirtableBase: !!process.env.AIRTABLE_BASE_ID,
+    airtableTable: process.env.AIRTABLE_TABLE_NAME || 'Not set',
+    airtableBaseId: process.env.AIRTABLE_BASE_ID ? `${process.env.AIRTABLE_BASE_ID.substring(0, 6)}...` : 'Not set'
   });
 });
 
@@ -119,13 +131,25 @@ app.post('/webhook/make', async (req, res) => {
     scenario.topic = topic;
 
     // Airtable에 저장 옵션이 있으면 저장
-    if (saveToAirtable && process.env.AIRTABLE_API_KEY && process.env.AIRTABLE_BASE_ID) {
-      try {
-        const airtableResult = await saveToAirtable(scenario);
-        scenario.airtableId = airtableResult.id;
-        logger.info(`Airtable 저장 완료: ${airtableResult.id}`);
-      } catch (airtableError) {
-        logger.error('Airtable 저장 실패:', airtableError);
+    if (saveToAirtable) {
+      console.log('Airtable 저장 시도...');
+      console.log('API Key:', process.env.AIRTABLE_API_KEY ? 'Set' : 'Not set');
+      console.log('Base ID:', process.env.AIRTABLE_BASE_ID ? 'Set' : 'Not set');
+      console.log('Table Name:', process.env.AIRTABLE_TABLE_NAME || 'Not set');
+
+      if (process.env.AIRTABLE_API_KEY && process.env.AIRTABLE_BASE_ID) {
+        try {
+          const airtableResult = await saveToAirtable(scenario);
+          scenario.airtableId = airtableResult.id;
+          logger.info(`Airtable 저장 완료: ${airtableResult.id}`);
+        } catch (airtableError) {
+          logger.error('Airtable 저장 실패:', airtableError);
+          console.error('Airtable 저장 에러 상세:', airtableError.message);
+          scenario.airtableError = airtableError.message;
+        }
+      } else {
+        console.log('Airtable 환경 변수가 설정되지 않음');
+        scenario.airtableError = 'Airtable 환경 변수 미설정';
       }
     }
 
@@ -151,7 +175,7 @@ async function saveToAirtable(scenario) {
   const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
     .base(process.env.AIRTABLE_BASE_ID);
 
-  const tableName = process.env.AIRTABLE_TABLE_NAME || 'Scenarios';
+  const tableName = process.env.AIRTABLE_TABLE_NAME || 'youtube';
 
   const record = await base(tableName).create({
     'Topic': scenario.topic,
@@ -207,7 +231,7 @@ app.get('/api/scenarios', async (req, res) => {
     const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY })
       .base(process.env.AIRTABLE_BASE_ID);
 
-    const tableName = process.env.AIRTABLE_TABLE_NAME || 'Scenarios';
+    const tableName = process.env.AIRTABLE_TABLE_NAME || 'youtube';
     const records = [];
 
     await base(tableName).select({
