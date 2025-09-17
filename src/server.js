@@ -416,7 +416,14 @@ ${scenario.tags ? scenario.tags.join(', ') : ''}
               },
               body: JSON.stringify({
                 fields: {
-                  'Attachment Summary': fullContent
+                  'Topic': scenario.topic,
+                  'Title': scenario.title || '',
+                  'Intro': scenario.intro || '',
+                  'Main Content': scenario.mainContent || '',
+                  'Conclusion': scenario.conclusion || '',
+                  'Description': scenario.description || '',
+                  'Tags': scenario.tags ? scenario.tags.join(', ') : '',
+                  'Generated At': scenario.generatedAt
                 }
               })
             });
