@@ -74,8 +74,41 @@ app.get('/api/debug/env', (req, res) => {
     hasAirtableKey: !!process.env.AIRTABLE_API_KEY,
     hasAirtableBase: !!process.env.AIRTABLE_BASE_ID,
     airtableTable: process.env.AIRTABLE_TABLE_NAME || 'Not set',
-    airtableBaseId: process.env.AIRTABLE_BASE_ID ? `${process.env.AIRTABLE_BASE_ID.substring(0, 6)}...` : 'Not set'
+    airtableBaseId: process.env.AIRTABLE_BASE_ID ? `${process.env.AIRTABLE_BASE_ID.substring(0, 6)}...` : 'Not set',
+    airtableKeyPrefix: process.env.AIRTABLE_API_KEY ? process.env.AIRTABLE_API_KEY.substring(0, 7) : 'Not set'
   });
+});
+
+// Airtable 연결 테스트 (디버그용)
+app.get('/api/debug/airtable-test', async (req, res) => {
+  if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
+    return res.json({ error: 'Airtable credentials not configured' });
+  }
+
+  const tableName = process.env.AIRTABLE_TABLE_NAME || 'table1';
+
+  try {
+    // Direct API call to test
+    const response = await fetch(`https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${tableName}?maxRecords=1`, {
+      headers: {
+        'Authorization': `Bearer ${process.env.AIRTABLE_API_KEY}`
+      }
+    });
+
+    const data = await response.json();
+
+    res.json({
+      status: response.status,
+      statusText: response.statusText,
+      tableName: tableName,
+      success: response.ok,
+      error: data.error,
+      recordCount: data.records ? data.records.length : 0,
+      fields: data.records && data.records[0] ? Object.keys(data.records[0].fields) : []
+    });
+  } catch (error) {
+    res.json({ error: error.message });
+  }
 });
 
 // 시나리오 생성 API
