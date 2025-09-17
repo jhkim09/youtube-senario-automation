@@ -21,7 +21,7 @@
     "topic": "{{topic}}",
     "materials": ["{{material1}}", "{{material2}}"],
     "keywords": ["{{keyword1}}", "{{keyword2}}"],
-    "saveToAirtable": false  // Make.com에서 처리
+    "shouldSaveToAirtable": false  // Make.com에서 처리
   }
 }
 ```
@@ -55,7 +55,7 @@
   "topic": "{{topic}}",
   "materials": ["{{material1}}", "{{material2}}"],
   "keywords": ["{{keyword1}}", "{{keyword2}}"],
-  "saveToAirtable": true  // 서버에서 자동 저장
+  "shouldSaveToAirtable": true  // 서버에서 자동 저장
 }
 ```
 

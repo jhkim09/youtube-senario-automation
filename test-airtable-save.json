@@ -2,5 +2,5 @@
   "topic": "Airtable 저장 테스트",
   "materials": ["테스트 소재1"],
   "keywords": ["테스트"],
-  "saveToAirtable": true
+  "shouldSaveToAirtable": true
 }
