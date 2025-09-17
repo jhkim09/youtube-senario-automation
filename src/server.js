@@ -83,11 +83,11 @@ app.post('/webhook/make', async (req, res) => {
     // Make.com에서 보낸 데이터 처리
     const {
       topic,
-      materials = '',
-      keywords = '',
-      references = '',
-      tone = 'informative',
-      length = 'medium',
+      materials = [],
+      keywords = [],
+      references = [],
+      tone = null,
+      length = null,
       targetAudience = 'general',
       videoType = 'educational',
       saveToAirtable = false
@@ -97,16 +97,19 @@ app.post('/webhook/make', async (req, res) => {
       return res.status(400).json({ error: '주제(topic)는 필수입니다.' });
     }
 
-    // 문자열로 받은 경우 배열로 변환
-    const materialsArray = materials ? materials.split(',').map(m => m.trim()) : [];
-    const keywordsArray = keywords ? keywords.split(',').map(k => k.trim()) : [];
-    const referencesArray = references ? references.split(',').map(r => r.trim()) : [];
+    // 배열 또는 문자열 처리
+    const materialsArray = Array.isArray(materials) ? materials :
+                          (typeof materials === 'string' && materials ? materials.split(',').map(m => m.trim()) : []);
+    const keywordsArray = Array.isArray(keywords) ? keywords :
+                         (typeof keywords === 'string' && keywords ? keywords.split(',').map(k => k.trim()) : []);
+    const referencesArray = Array.isArray(references) ? references :
+                           (typeof references === 'string' && references ? references.split(',').map(r => r.trim()) : []);
 
     const scenario = await scenarioService.generateScenario(topic, {
-      tone,
-      length,
-      targetAudience,
-      videoType,
+      tone: tone || 'informative',
+      length: length || 'medium',
+      targetAudience: targetAudience || 'general',
+      videoType: videoType || 'educational',
       materials: materialsArray,
       keywords: keywordsArray,
       references: referencesArray

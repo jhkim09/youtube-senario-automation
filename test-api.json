@@ -1,0 +1,7 @@
+{
+  "topic": "초보자를 위한 Python 프로그래밍",
+  "materials": ["변수와 데이터 타입", "조건문과 반복문", "함수 기초"],
+  "keywords": ["Python", "프로그래밍", "코딩", "초보자"],
+  "tone": "educational",
+  "length": "medium"
+}
