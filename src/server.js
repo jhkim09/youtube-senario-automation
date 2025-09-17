@@ -24,12 +24,12 @@ app.use((req, res, next) => {
 
 // Airtable 저장 함수 정의 (Direct API 사용)
 const saveToAirtable = async (scenario) => {
-  if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
-    throw new Error('Airtable 설정이 없습니다.');
+  if (!process.env.AIRTABLE_API_KEY) {
+    throw new Error('Airtable API 키가 설정되지 않았습니다.');
   }
 
   const tableName = encodeURIComponent(process.env.AIRTABLE_TABLE_NAME || 'Table 1');
-  const baseId = process.env.AIRTABLE_BASE_ID;
+  const baseId = 'app0nk3oQJxZCqmDn';  // 하드코딩된 Base ID
   const apiKey = process.env.AIRTABLE_API_KEY;
 
   const fullContent = `
@@ -260,10 +260,18 @@ app.post('/webhook/make', async (req, res) => {
         tableName: process.env.AIRTABLE_TABLE_NAME || 'youtube'
       });
 
-      if (process.env.AIRTABLE_API_KEY && process.env.AIRTABLE_BASE_ID) {
+      if (process.env.AIRTABLE_API_KEY) {
         const tableName = encodeURIComponent(process.env.AIRTABLE_TABLE_NAME || 'Table 1');
-        const baseId = process.env.AIRTABLE_BASE_ID;
+        // 테스트에서 성공한 Base ID 사용
+        const baseId = 'app0nk3oQJxZCqmDn';  // process.env.AIRTABLE_BASE_ID
         const apiKey = process.env.AIRTABLE_API_KEY;
+
+        logger.info('Airtable 저장 상세 정보:', {
+          baseId: baseId,
+          tableName: tableName,
+          apiKeyPrefix: apiKey.substring(0, 7),
+          envBaseId: process.env.AIRTABLE_BASE_ID
+        });
 
         const airtableResults = [];
 
