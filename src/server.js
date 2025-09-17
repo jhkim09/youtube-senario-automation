@@ -71,8 +71,12 @@ ${scenario.tags ? scenario.tags.join(', ') : ''}
         'Main Content': scenario.mainContent || '',
         'Conclusion': scenario.conclusion || '',
         'Description': scenario.description || '',
-        'Tags': scenario.tags ? scenario.tags.join(', ') : ''
-        // 'Generated At' 필드는 날짜 형식 문제로 제외
+        'Tags': scenario.tags ? scenario.tags.join(', ') : '',
+        'Generated At': new Date().toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).replace(/\. /g, '-').replace(/\./g, '')  // 2025-09-18 형식
       }
     })
   });
@@ -422,8 +426,12 @@ ${scenario.tags ? scenario.tags.join(', ') : ''}
                   'Main Content': scenario.mainContent || '',
                   'Conclusion': scenario.conclusion || '',
                   'Description': scenario.description || '',
-                  'Tags': scenario.tags ? scenario.tags.join(', ') : ''
-                  // 'Generated At' 필드는 날짜 형식 문제로 제외
+                  'Tags': scenario.tags ? scenario.tags.join(', ') : '',
+                  'Generated At': new Date().toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                  }).replace(/\. /g, '-').replace(/\./g, '')  // 2025-09-18 형식
                 }
               })
             });
